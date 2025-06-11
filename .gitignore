@@ -1,0 +1,30 @@
+# WordPress Core
+/wp-admin/
+/wp-includes/
+/wp-content/index.php
+/wp-content/languages
+/wp-content/plugins/index.php
+/wp-content/themes/index.php
+
+# Configuration
+wp-config.php
+wp-config-sample.php
+
+# Uploads
+/wp-content/uploads/
+
+# Plugins
+*.log
+.htaccess
+
+# Backup files
+*.backup
+*.bak
+*.tmp
+
+# IDE and OS files
+.DS_Store
+.vscode/
+*.swp
+*.swo
+*~
