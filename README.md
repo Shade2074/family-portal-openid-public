@@ -322,3 +322,4 @@ If this plugin helped you secure your family portal, please consider giving it a
 ---
 
 **Built with ❤️ for families who want secure, self-hosted authentication solutions.**
+Add comprehensive professional documentation v1.1.0
