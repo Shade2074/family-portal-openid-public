@@ -16,7 +16,7 @@
  * - Single logout functionality (clears both WordPress AND Keycloak sessions)
  * - Enhanced handleLogout() function with Keycloak session termination
  * - Group-based role mapping with admin privilege support
- * - Beautiful sapphire blue password toggle interface
+ * - Beautiful professional SVG eye icons for password toggle
  * - Configurable logout redirect URLs
  * - Comprehensive debugging system
  * - Professional admin interface
@@ -114,19 +114,23 @@ class FamilyPortalOpenIDConnect {
             return;
         }
         
-        // Add inline script for beautiful sapphire eye toggle
+        // Add inline script for professional SVG eye toggle
         wp_add_inline_script('jquery', '
             jQuery(document).ready(function($) {
-                // Add password toggle button with sapphire blue styling
+                // Add password toggle button with professional SVG icons
                 var $secretField = $("input[name=\'fpoidc_client_secret\']");
                 if ($secretField.length) {
                     // Wrap field in relative container
                     $secretField.wrap("<div style=\'position: relative; display: inline-block;\'></div>");
                     
-                    // Add sapphire blue eye button right after the field
-                    $secretField.after("<button type=\'button\' id=\'toggle-secret\' style=\'position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; color: #0066CC; transition: color 0.3s ease;\'>🙈</button>");
+                    // Define professional SVG eye icons
+                    var eyeOpenSVG = \'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0088FF" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>\';
+                    var eyeClosedSVG = \'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0088FF" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>\';
                     
-                    // Toggle functionality with eye state changes
+                    // Add the toggle button with closed eye initially
+                    $secretField.after(\'<button type="button" id="toggle-secret" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; transition: all 0.3s ease; border-radius: 3px;">\' + eyeClosedSVG + \'</button>\');
+                    
+                    // Toggle functionality with SVG icons
                     $("#toggle-secret").on("click", function() {
                         var $this = $(this);
                         var type = $secretField.attr("type") === "password" ? "text" : "password";
@@ -134,20 +138,21 @@ class FamilyPortalOpenIDConnect {
                         $secretField.attr("type", type);
                         
                         if (type === "password") {
-                            // Hidden: closed eye (sapphire blue)
-                            $this.html("🙈").css("color", "#0066CC");
+                            // Hidden: show closed/crossed eye
+                            $this.html(eyeClosedSVG);
                         } else {
-                            // Visible: open eye (brighter sapphire)
-                            $this.html("👁️").css("color", "#0088FF");
+                            // Visible: show open eye
+                            $this.html(eyeOpenSVG);
                         }
                     });
                     
                     // Hover effects for better UX
                     $("#toggle-secret").hover(
-                        function() { $(this).css("color", "#004499"); },
                         function() { 
-                            var isVisible = $secretField.attr("type") === "text";
-                            $(this).css("color", isVisible ? "#0088FF" : "#0066CC"); 
+                            $(this).css({"background-color": "#f0f8ff", "transform": "translateY(-50%) scale(1.1)"}); 
+                        },
+                        function() { 
+                            $(this).css({"background-color": "transparent", "transform": "translateY(-50%) scale(1)"}); 
                         }
                     );
                 }
@@ -220,7 +225,7 @@ class FamilyPortalOpenIDConnect {
                         <th scope="row">Client Secret</th>
                         <td>
                             <input type="password" name="fpoidc_client_secret" value="<?php echo esc_attr(get_option('fpoidc_client_secret')); ?>" class="regular-text" />
-                            <p class="description">OpenID Connect client secret (stored securely) - Click the sapphire eye to reveal/hide</p>
+                            <p class="description">OpenID Connect client secret (stored securely) - Click the eye to reveal/hide</p>
                         </td>
                     </tr>
                     <tr>
