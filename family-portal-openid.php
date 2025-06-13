@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Family Portal OpenID Connect
- * Plugin URI: https://github.com/Shade2074/family-portal-openid-public
- * Description: Custom OpenID Connect authentication plugin for Family Portal with Keycloak group-based role mapping. Designed specifically for self-hosted family portals with enterprise-grade single logout functionality.
- * Version: 1.1.0
+ * Plugin URI: https://github.com/Shade2074/family-portal-openid
+ * Description: Custom OpenID Connect authentication plugin for Family Portal with Keycloak group-based role mapping. Designed specifically for self-hosted family portals.
+ * Version: 1.1.1
  * Author: Shade2074
  * License: MIT
  * Text Domain: family-portal-openid
@@ -12,22 +12,15 @@
  * This plugin provides secure OpenID Connect authentication with automatic role assignment
  * based on Keycloak group membership. Built for the Family Portal project.
  * 
- * Version 1.1.0 Features:
- * - Single logout functionality (clears both WordPress AND Keycloak sessions)
- * - Enhanced handleLogout() function with Keycloak session termination
- * - Group-based role mapping with admin privilege support
- * - Beautiful professional SVG eye icons for password toggle
- * - Configurable logout redirect URLs
- * - Comprehensive debugging system
- * - Professional admin interface
+ * Version 1.1.1 Changes:
+ * - Updated for external domain access (your_domain.com)
+ * - Fixed hardcoded internal IP addresses
+ * - Updated Keycloak URLs for reverse proxy compatibility
  * 
- * SETUP INSTRUCTIONS:
- * 1. Configure your Keycloak server with a new realm and client
- * 2. Update the plugin settings in WordPress admin
- * 3. Add the callback URL to your Keycloak client configuration
- * 4. Test the authentication flow
- * 
- * For detailed setup instructions, see: README.md
+ * Version 1.1.0 Changes:
+ * - Enhanced single logout functionality (clears both WordPress AND Keycloak sessions)
+ * - Professional SVG eye icons for password toggle
+ * - Improved admin interface and debugging
  */
 
 // Prevent direct access
@@ -36,7 +29,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('FPOIDC_VERSION', '1.1.0');
+define('FPOIDC_VERSION', '1.1.1');
 define('FPOIDC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FPOIDC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FPOIDC_PLUGIN_FILE', __FILE__);
@@ -44,7 +37,7 @@ define('FPOIDC_PLUGIN_FILE', __FILE__);
 /**
  * Main Family Portal OpenID Connect Plugin Class
  */
-class FamilyPortalOpenIDConnect {
+class YourRealmOpenIDConnect {
     
     private static $instance = null;
     
@@ -203,8 +196,8 @@ class FamilyPortalOpenIDConnect {
                     <tr>
                         <th scope="row">Keycloak Server URL</th>
                         <td>
-                            <input type="url" name="fpoidc_keycloak_url" value="<?php echo esc_attr(get_option('fpoidc_keycloak_url', 'http://YOUR_SERVER_IP:8080')); ?>" class="regular-text" />
-                            <p class="description">Base URL of your Keycloak server (e.g., http://192.168.1.70:8080)</p>
+                            <input type="url" name="fpoidc_keycloak_url" value="<?php echo esc_attr(get_option('fpoidc_keycloak_url', 'https://your_domain.com:8080')); ?>" class="regular-text" />
+                            <p class="description">Base URL of your Keycloak server (e.g., https://your_domain.com:8080)</p>
                         </td>
                     </tr>
                     <tr>
@@ -217,7 +210,7 @@ class FamilyPortalOpenIDConnect {
                     <tr>
                         <th scope="row">Client ID</th>
                         <td>
-                            <input type="text" name="fpoidc_client_id" value="<?php echo esc_attr(get_option('fpoidc_client_id', 'wordpress-client')); ?>" class="regular-text" />
+                            <input type="text" name="fpoidc_client_id" value="<?php echo esc_attr(get_option('fpoidc_client_id', 'your-wordpress-client')); ?>" class="regular-text" />
                             <p class="description">OpenID Connect client ID</p>
                         </td>
                     </tr>
@@ -253,8 +246,8 @@ class FamilyPortalOpenIDConnect {
                     <tr>
                         <th scope="row">Logout Redirect URL</th>
                         <td>
-                            <input type="url" name="fpoidc_logout_redirect_url" value="<?php echo esc_attr(get_option('fpoidc_logout_redirect_url', home_url('/'))); ?>" class="regular-text" />
-                            <p class="description">Where users should be redirected after logout (defaults to your home page)</p>
+                            <input type="url" name="fpoidc_logout_redirect_url" value="<?php echo esc_attr(get_option('fpoidc_logout_redirect_url', 'https://your_domain.com/')); ?>" class="regular-text" />
+                            <p class="description">Where users should be redirected after logout (e.g., https://your_domain.com/)</p>
                         </td>
                     </tr>
                     <tr>
@@ -280,14 +273,14 @@ class FamilyPortalOpenIDConnect {
                     <span style="color: red;">❌ Not Configured</span>
                 <?php endif; ?>
             </p>
-            <p><strong>Logout Redirect:</strong> <?php echo esc_html(get_option('fpoidc_logout_redirect_url', home_url('/'))); ?></p>
+            <p><strong>Logout Redirect:</strong> <?php echo esc_html(get_option('fpoidc_logout_redirect_url', 'https://your_domain.com/')); ?></p>
             <p><strong>Single Logout:</strong> <span style="color: green;">✅ Enabled (v1.1.0 feature)</span></p>
             
             <h2>Callback URLs for Keycloak Configuration</h2>
             <p><strong>Redirect URI:</strong><br>
             <code><?php echo home_url('/wp-admin/admin-ajax.php?action=fpoidc_callback'); ?></code></p>
             <p><strong>Post Logout Redirect URI:</strong><br>
-            <code><?php echo esc_html(get_option('fpoidc_logout_redirect_url', home_url('/'))); ?></code></p>
+            <code><?php echo esc_html(get_option('fpoidc_logout_redirect_url', 'https://your_domain.com/')); ?></code></p>
             <p><em>Use these exact URLs in your Keycloak client configuration.</em></p>
             
             <?php if (get_option('fpoidc_debug_mode')): ?>
@@ -353,11 +346,8 @@ class FamilyPortalOpenIDConnect {
         $redirect_uri = home_url('/wp-admin/admin-ajax.php?action=fpoidc_callback');
         $state = wp_create_nonce('fpoidc_auth_' . time());
         
-        // Store state in session for validation
-        if (!session_id()) {
-            session_start();
-        }
-        $_SESSION['fpoidc_state'] = $state;
+        // Store state in WordPress transients for validation (more reliable than sessions)
+        set_transient('fpoidc_state_' . $state, $state, 600); // 10 minutes expiry
         
         $params = array(
             'client_id' => $client_id,
@@ -391,13 +381,9 @@ class FamilyPortalOpenIDConnect {
             wp_die('Authentication error from Keycloak: ' . $error . '<br>Description: ' . $error_description);
         }
         
-        // Verify state parameter
-        if (!session_id()) {
-            session_start();
-        }
-        
+        // Verify state parameter using transients
         $received_state = isset($_GET['state']) ? sanitize_text_field($_GET['state']) : '';
-        $stored_state = isset($_SESSION['fpoidc_state']) ? $_SESSION['fpoidc_state'] : '';
+        $stored_state = get_transient('fpoidc_state_' . $received_state);
         
         $this->debugLog('State verification - Received: ' . $received_state . ', Stored: ' . $stored_state);
         
@@ -407,7 +393,7 @@ class FamilyPortalOpenIDConnect {
         }
         
         // Clear the state
-        unset($_SESSION['fpoidc_state']);
+        delete_transient('fpoidc_state_' . $received_state);
         
         // Check for authorization code
         if (!isset($_GET['code'])) {
@@ -606,7 +592,7 @@ class FamilyPortalOpenIDConnect {
      */
     public function handleLogout() {
         // Get the configured logout redirect URL
-        $logout_redirect_url = get_option('fpoidc_logout_redirect_url', home_url('/'));
+        $logout_redirect_url = get_option('fpoidc_logout_redirect_url', 'https://your_domain.com/');
         
         // Log the logout for debugging
         $this->debugLog('User logout initiated - implementing single logout');
@@ -622,7 +608,7 @@ class FamilyPortalOpenIDConnect {
             // Add post_logout_redirect_uri parameter to redirect back to our site after Keycloak logout
             $keycloak_logout_params = array(
                 'post_logout_redirect_uri' => $logout_redirect_url,
-                'client_id' => get_option('fpoidc_client_id', 'wordpress-client')
+                'client_id' => get_option('fpoidc_client_id', 'your-wordpress-client')
             );
             
             $full_keycloak_logout_url = $keycloak_logout_url . '?' . http_build_query($keycloak_logout_params);
@@ -647,15 +633,15 @@ class FamilyPortalOpenIDConnect {
      * Plugin activation
      */
     public function activate() {
-        // Set default options with placeholder values
+        // Set default options
         if (!get_option('fpoidc_keycloak_url')) {
-            update_option('fpoidc_keycloak_url', 'http://YOUR_SERVER_IP:8080');
+            update_option('fpoidc_keycloak_url', 'https://your_domain.com:8080');
         }
         if (!get_option('fpoidc_realm')) {
             update_option('fpoidc_realm', 'YourRealm');
         }
         if (!get_option('fpoidc_client_id')) {
-            update_option('fpoidc_client_id', 'wordpress-client');
+            update_option('fpoidc_client_id', 'your-wordpress-client');
         }
         if (!get_option('fpoidc_admin_group')) {
             update_option('fpoidc_admin_group', 'Admin');
@@ -664,7 +650,7 @@ class FamilyPortalOpenIDConnect {
             update_option('fpoidc_default_role', 'subscriber');
         }
         if (!get_option('fpoidc_logout_redirect_url')) {
-            update_option('fpoidc_logout_redirect_url', home_url('/'));
+            update_option('fpoidc_logout_redirect_url', 'https://your_domain.com/');
         }
     }
     
@@ -677,6 +663,396 @@ class FamilyPortalOpenIDConnect {
 }
 
 // Initialize the plugin
-FamilyPortalOpenIDConnect::getInstance();
+YourRealmOpenIDConnect::getInstance();
 
+/* ------------------------------ */
+/*    LOGIN-PAGE APPEARANCE CSS   */
+/* ------------------------------ */
+add_action('login_enqueue_scripts', 'family_portal_custom_login_page');
+function family_portal_custom_login_page() {
+    ?>
+    <style type="text/css">
+        /* Hide default WordPress elements */
+        #loginform, .login-action-login #nav, .login-action-login #backtoblog {
+            display: none !important;
+        }
+        
+        /* Full page background */
+        body.login {
+            background: url('<?php echo plugins_url('background.jpg', __FILE__); ?>') no-repeat center center fixed !important;
+            background-size: cover !important;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Main login container */
+        #login {
+            width: 100% !important;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 0 !important;
+        }
+        
+        /* Portal button container */
+        .portal-button-container {
+            text-align: center;
+            z-index: 10;
+        }
+        
+        /* Portal button styling */
+        .portal-button {
+            cursor: pointer;
+            transition: transform 0.3s ease, filter 0.3s ease;
+            max-width: 300px;
+            height: auto;
+            border: none;
+            background: none;
+            padding: 0;
+        }
+        
+        .portal-button:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        
+        /* Gnome container - lower left corner */
+        .gnome-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 20;
+        }
+        
+        /* Gnome image */
+        .gnome-toggle {
+            width: 80px;
+            height: auto;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .gnome-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Admin panel - hidden by default */
+        .admin-panel {
+            position: absolute;
+            bottom: 85px;
+            left: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: none;
+            min-width: 250px;
+        }
+        
+        .admin-panel h3 {
+            color: #CC5500;
+            margin: 0 0 10px 0;
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .admin-panel input[type="text"],
+        .admin-panel input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 2px solid #8B4513;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .admin-panel .button {
+            background: #CC5500;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .admin-panel .button:hover {
+            background: #AA4400;
+        }
+        
+        /* Hide WordPress logo */
+        .login h1 a {
+            display: none !important;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .portal-button {
+                max-width: 250px;
+            }
+            
+            .gnome-toggle {
+                width: 60px;
+            }
+            
+            .admin-panel {
+                min-width: 200px;
+            }
+        }
+
+        /* =========  VORTEX EFFECT  ========= */
+        /* Background clone that we can animate */
+        .vortex-background {
+            animation: background-vortex 2s ease-in forwards !important;
+        }
+        
+        /* -- selector fixed to apply to the actual <body class="login"> element -- */
+        body.login.vortex-animation {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body.login.vortex-animation::before {      /* pseudo water overlay */
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center,
+                            transparent 0%,
+                            transparent 30%,
+                            rgba(0,100,200,.3) 60%,
+                            rgba(0,150,255,.8) 100%);
+            z-index: 1000;
+            animation: water-overlay 2s ease-in-out forwards;
+        }
+
+        /* Keyframes for vortex animations */
+        @keyframes background-vortex {
+            0% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+                filter: blur(0px);
+            }
+            25% {
+                transform: scale(1.1) rotate(180deg);
+                opacity: 0.9;
+                filter: blur(2px);
+            }
+            50% {
+                transform: scale(0.8) rotate(540deg);
+                opacity: 0.7;
+                filter: blur(4px);
+            }
+            75% {
+                transform: scale(0.3) rotate(900deg);
+                opacity: 0.4;
+                filter: blur(6px);
+            }
+            100% {
+                transform: scale(0.02) rotate(1440deg);
+                opacity: 0;
+                filter: blur(20px);
+            }
+        }
+        
+        @keyframes water-overlay {
+            0% {
+                opacity: 0;
+                transform: scale(1) rotate(0deg);
+                background: radial-gradient(circle at center, transparent 0%, transparent 30%, rgba(0,100,200,0.1) 60%, rgba(0,150,255,0.3) 100%);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.5) rotate(180deg);
+                background: radial-gradient(circle at center, transparent 0%, rgba(0,150,255,0.2) 20%, rgba(0,100,200,0.6) 50%, rgba(0,50,150,0.9) 100%);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(3) rotate(720deg);
+                background: radial-gradient(circle at center, rgba(0,200,255,0.8) 0%, rgba(0,100,200,0.9) 30%, rgba(0,50,150,1) 100%);
+            }
+        }
+    </style>
+    
+    <!-- html2canvas for snapshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Portal page script loaded - Phase 1');
+        
+        // FIRST: Replace the login form with our custom interface
+        const loginDiv = document.getElementById('login');
+        if (loginDiv) {
+            console.log('Login div found, replacing content...');
+            loginDiv.innerHTML = `
+                <div class="portal-button-container">
+                    <img src="<?php echo plugins_url('enterportal.png', __FILE__); ?>" 
+                         alt="Enter Portal" 
+                         class="portal-button" 
+                         title="Click to enter the Family Portal">
+                </div>
+                
+                <div class="gnome-container">
+                    <img src="<?php echo plugins_url('gnome-stump.png', __FILE__); ?>" 
+                         alt="Admin Access" 
+                         class="gnome-toggle" 
+                         title="Click for admin access">
+                    
+                    <div class="admin-panel">
+                        <h3>Admin Only</h3>
+                        <form method="post" action="<?php echo wp_login_url(); ?>">
+                            <input type="text" name="log" placeholder="Username" required>
+                            <input type="password" name="pwd" placeholder="Password" required>
+                            <input type="submit" class="button" value="Login">
+                            <input type="hidden" name="redirect_to" value="<?php echo admin_url(); ?>">
+                        </form>
+                    </div>
+                </div>
+            `;
+            console.log('Content replaced successfully');
+        } else {
+            console.log('Login div NOT found!');
+        }
+        
+        // Small delay to ensure DOM is fully updated
+        setTimeout(function() {
+            console.log('Portal page script loaded - Phase 2');
+            
+            // Gnome toggle functionality
+            const gnome = document.querySelector('.gnome-toggle');
+            const adminPanel = document.querySelector('.admin-panel');
+            
+            console.log('Gnome element:', gnome);
+            console.log('Admin panel element:', adminPanel);
+            
+            if (gnome && adminPanel) {
+                gnome.addEventListener('click', function() {
+                    console.log('Gnome clicked!');
+                    if (adminPanel.style.display === 'none' || adminPanel.style.display === '') {
+                        adminPanel.style.display = 'block';
+                        console.log('Admin panel shown');
+                    } else {
+                        adminPanel.style.display = 'none';
+                        console.log('Admin panel hidden');
+                    }
+                });
+            }
+            
+            // Portal button vortex effect
+            const portalButton = document.querySelector('.portal-button');
+            console.log('Portal button element:', portalButton);
+            
+            if (portalButton) {
+                portalButton.addEventListener('click', function(e) {
+                    console.log('Portal button clicked!');
+                    e.preventDefault();
+                    
+                    // FIRST: Hide the original background and create animated clone
+                    var backgroundClone = document.createElement('div');
+                    backgroundClone.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: url('<?php echo plugins_url('background.jpg', __FILE__); ?>') no-repeat center center;
+                        background-size: cover;
+                        z-index: 5;
+                        transform-origin: center center;
+                    `;
+                    
+                    // Hide original background and add clone
+                    document.body.style.background = 'black';
+                    document.body.appendChild(backgroundClone);
+                    
+                    // Hide gnome immediately
+                    var gnomeContainer = document.querySelector('.gnome-container');
+                    if (gnomeContainer) {
+                        gnomeContainer.style.display = 'none';
+                    }
+                    
+                    // THEN: trigger CSS-keyframed swirl on the clone
+                    setTimeout(function() {
+                        backgroundClone.classList.add('vortex-background');
+                        document.body.classList.add('vortex-animation');
+                    }, 50);
+                    
+                    // Redirect after animation
+                    setTimeout(function() {
+                        console.log('Starting redirect to Keycloak...');
+                        
+                        // Method 1: Generate direct Keycloak URL
+try {
+    var keycloakUrl = '<?php echo get_option("fpoidc_keycloak_url", ""); ?>/realms/<?php echo get_option("fpoidc_realm", ""); ?>/protocol/openid-connect/auth?client_id=<?php echo get_option("fpoidc_client_id", ""); ?>&redirect_uri=' + encodeURIComponent('<?php echo admin_url("admin-ajax.php?action=fpoidc_callback"); ?>') + '&response_type=code&scope=openid email profile groups&state=' + encodeURIComponent('<?php echo wp_create_nonce("fpoidc_auth_" . time()); ?>');
+    console.log('Generated Keycloak URL:', keycloakUrl);
+    window.location.href = keycloakUrl;
+    return;
+} catch(e) {
+    console.log('Method 1 failed:', e);
+}
+                        
+                        // Method 2: Use WordPress login with portal parameter
+                        try {
+                            console.log('Using WordPress login redirect method');
+                            var loginUrl = '<?php echo wp_login_url(); ?>?portal_login=1';
+                            console.log('Login URL:', loginUrl);
+                            window.location.href = loginUrl;
+                        } catch(e) {
+                            console.log('Method 2 failed:', e);
+                            // Final fallback
+                            window.location.href = '<?php echo wp_login_url(); ?>';
+                        }
+                    }, 2000);
+                });
+            } else {
+                console.log('Portal button not found!');
+            }
+        }, 100);
+    });
+    </script>
+    <?php
+}
+
+// Handle the portal login redirect
+add_action('admin_post_nopriv_family_portal_login', 'handle_family_portal_login');
+add_action('admin_post_family_portal_login', 'handle_family_portal_login');
+add_action('login_init', 'handle_portal_login_parameter');
+
+function handle_portal_login_parameter() {
+    if (isset($_GET['portal_login']) && $_GET['portal_login'] == '1') {
+        // Redirect to the plugin's authorization URL using the same method as the original plugin
+        $keycloak_url = get_option('fpoidc_keycloak_url', 'https://your_domain.com:8080');
+        $realm = get_option('fpoidc_realm', 'YourRealm');
+        $client_id = get_option('fpoidc_client_id', 'your-wordpress-client');
+        $redirect_uri = home_url('/wp-admin/admin-ajax.php?action=fpoidc_callback');
+        $state = wp_create_nonce('fpoidc_auth_' . time());
+        
+        // Store state in WordPress transients for validation (more reliable than sessions)
+        set_transient('fpoidc_state_' . $state, $state, 600); // 10 minutes expiry
+        
+        $params = array(
+            'client_id' => $client_id,
+            'redirect_uri' => $redirect_uri,
+            'response_type' => 'code',
+            'scope' => 'openid email profile groups',
+            'state' => $state
+        );
+        
+        $auth_url = $keycloak_url . '/realms/' . $realm . '/protocol/openid-connect/auth?' . http_build_query($params);
+        wp_redirect($auth_url);
+        exit;
+    }
+}
+
+function handle_family_portal_login() {
+    // This function exists for compatibility but the main logic is in handle_portal_login_parameter
+    handle_portal_login_parameter();
+}
 ?>
